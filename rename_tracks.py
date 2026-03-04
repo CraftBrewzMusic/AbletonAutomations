@@ -43,13 +43,13 @@ def strip_track_number(name: str) -> str | None:
     """Remove the auto-numbered prefix that Ableton generates from '#' in track names.
 
     Ableton replaces '#' with the track's position number and spaces become
-    dashes, so '# 04_DRUMS' becomes '3-04_DRUMS' via the API. This detects
-    that pattern (number, dash, zero-padded number, underscore, rest) and
-    returns '# ' + rest, e.g. '# 04_DRUMS'.
+    dashes, so '#_D Stab' becomes '6-02_D Stab' via the API. This detects
+    that pattern (number, dash, zero-padded index, underscore, rest) and
+    returns '#' + '_rest', e.g. '#_D Stab'.
     """
-    m = re.match(r"^\d+-(\d+_.+)", name)
+    m = re.match(r"^\d+-\d+(_.*)", name)
     if m:
-        return "# " + m.group(1)
+        return "#" + m.group(1)
     return None
 
 
