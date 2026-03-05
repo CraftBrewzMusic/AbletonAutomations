@@ -54,13 +54,14 @@ def strip_track_number(name: str) -> str | None:
 
 
 def print_all_track_names(set: live.Set):
-    """Print all track names."""
+    """Print all track names, showing group hierarchy."""
     print("Current track names:")
-    for i, track in enumerate(set.tracks):
+    for track in set.tracks:
         if track is None:
-            print(f"  Track {i}: <None>")
-        else:
-            print(f"  Track {i}: '{track.name}'")
+            continue
+        indent = "    " if track.group is not None else "  "
+        label = " [GROUP]" if track.is_group else ""
+        print(f"{indent}Track {track.index}{label}: '{track.name}'")
 
 
 def main():
@@ -78,7 +79,15 @@ def main():
 
     try:
         set = live.Set()
-        set.scan()
+        # Use network scan mode to work around a bug in PyLive 0.4.0's
+        # _scan_via_file: when a Group track is encountered, the local variable
+        # is named 'group' instead of 'track', so the subsequent clips/devices
+        # code raises UnboundLocalError if any group has a device attached.
+        # See: https://github.com/ideoforms/pylive/issues/42
+        # Fix pending in: https://github.com/ideoforms/pylive/pull/43
+        # The network scan avoids the bug by looking up tracks via index rather
+        # than relying on the local variable. It is slightly slower but correct.
+        set.scan(mode="network")
     except (ConnectionError, OSError) as e:
         print(ABLETONOSC_INSTALL_HELP, file=sys.stderr)
         print(f"(Error details: {e})", file=sys.stderr)
@@ -89,10 +98,10 @@ def main():
 
     # Collect renames
     renames = []
-    for i, track in enumerate(set.tracks):
+    for track in set.tracks:
         new_name = strip_track_number(track.name)
         if new_name is not None:
-            renames.append((i, track.name, new_name))
+            renames.append((track.index, track.name, new_name))
 
     if not renames:
         print("\nNo tracks need renaming.")
